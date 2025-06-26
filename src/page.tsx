@@ -1,118 +1,120 @@
 import React, { useState, useEffect } from 'react'
 import dayjs from 'dayjs'
-import { Line } from 'react-chartjs-2'
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js'
+import './style.css'
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
+type Activity = {
+  distance?: string
+  time?: string
+  calories: string
+}
 
-const today = dayjs()
-const generateDays = () => {
+type Day = {
+  date: string
+  running: Activity
+  strength: Activity
+}
+
+const getMonthDays = (year: number, month: number) => {
   const days = []
-  for (let i = 0; i < 30; i++) {
-    const date = today.add(i, 'day')
+  const firstDay = dayjs().year(year).month(month).date(1)
+  const startDay = firstDay.day()
+  const daysInMonth = firstDay.daysInMonth()
+
+  for (let i = 0; i < startDay; i++) {
+    days.push(null)
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = dayjs().year(year).month(month).date(d).format('YYYY-MM-DD')
     days.push({
-      date: date.format('YYYY-MM-DD'),
-      completed: false,
-      calories: '',
-      distance: '',
-      time: '',
-      note: ''
+      date,
+      running: { distance: '', time: '', calories: '' },
+      strength: { calories: '' }
     })
   }
+
   return days
 }
 
-export default function App() {
-  const [days, setDays] = useState(() => {
-    const saved = localStorage.getItem('treningownik-days')
-    return saved ? JSON.parse(saved) : generateDays()
-  })
+const STORAGE_KEY = 'treningownik-calendar'
 
-  const [showSplash, setShowSplash] = useState(true)
+export default function Calendar() {
+  const today = dayjs()
+  const [year] = useState(today.year())
+  const [month] = useState(today.month())
+  const [days, setDays] = useState<(Day | null)[]>([])
 
   useEffect(() => {
-    localStorage.setItem('treningownik-days', JSON.stringify(days))
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
+      setDays(JSON.parse(saved))
+    } else {
+      setDays(getMonthDays(year, month))
+    }
+  }, [year, month])
+
+  useEffect(() => {
+    if (days.length > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(days))
+    }
   }, [days])
 
-  useEffect(() => {
-    const timer = setTimeout(() => setShowSplash(false), 2000)
-    return () => clearTimeout(timer)
-  }, [])
-
-  const toggleDay = (index: number) => {
+  const updateField = (index: number, type: 'running' | 'strength', field: string, value: string) => {
     const copy = [...days]
-    copy[index].completed = !copy[index].completed
-    setDays(copy)
+    const day = copy[index]
+    if (day) {
+      day[type][field] = value
+      setDays(copy)
+    }
   }
 
-  const updateField = (index: number, field: string, value: string) => {
-    const copy = [...days]
-    copy[index][field] = value
-    setDays(copy)
-  }
-
-  const exportToCSV = () => {
-    const header = 'Data,Trening,Zaliczony,Kalorie,Dystans (km),Czas (min),Notatka\n'
-    const rows = days.map(d => 
-      [d.date, d.completed ? '✅' : '', d.completed, d.calories, d.distance, d.time, d.note].join(',')
-    )
-    const csv = header + rows.join('\n')
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = 'treningi.csv'
-    link.click()
-  }
-
-  const statsData = {
-    labels: days.map(d => d.date),
-    datasets: [
-      {
-        label: 'Kalorie',
-        data: days.map(d => Number(d.calories || 0)),
-        borderColor: 'blue',
-        backgroundColor: 'rgba(0,0,255,0.2)'
-      },
-      {
-        label: 'Dystans (km)',
-        data: days.map(d => Number(d.distance || 0)),
-        borderColor: 'green',
-        backgroundColor: 'rgba(0,255,0,0.2)'
+  const totals = days.reduce(
+    (acc, day) => {
+      if (day) {
+        acc.runningDistance += parseFloat(day.running.distance || '0')
+        acc.runningTime += parseFloat(day.running.time || '0')
+        acc.runningCalories += parseFloat(day.running.calories || '0')
+        acc.strengthCalories += parseFloat(day.strength.calories || '0')
       }
-    ]
-  }
+      return acc
+    },
+    { runningDistance: 0, runningTime: 0, runningCalories: 0, strengthCalories: 0 }
+  )
 
   return (
-    <>
-      {showSplash && <div className="splash">🚀 Treningownik ładuje się...</div>}
-      <div style={{ padding: '2rem', maxWidth: 1000, margin: '0 auto' }}>
-        <h1>Treningownik</h1>
-        <p>Widok miesięczny, notatki, wykresy i eksport danych.</p>
-        <button onClick={exportToCSV}>📤 Eksportuj dane do CSV</button>
-        <div style={{ margin: '2rem 0' }}>
-          <Line data={statsData} />
-        </div>
-        <div style={{ display: 'grid', gap: '1rem' }}>
-          {days.map((day, i) => (
-            <div key={day.date} style={{ padding: '1rem', border: '1px solid #ccc', borderRadius: 8 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <strong>{day.date}</strong>
-                <button onClick={() => toggleDay(i)}>
-                  {day.completed ? '✅' : '⬜'}
-                </button>
-              </div>
-              <div style={{ marginTop: '0.5rem' }}>
-                <input placeholder="Kalorie" value={day.calories} onChange={e => updateField(i, 'calories', e.target.value)} style={{ marginRight: 8 }} />
-                <input placeholder="Dystans (km)" value={day.distance} onChange={e => updateField(i, 'distance', e.target.value)} style={{ marginRight: 8 }} />
-                <input placeholder="Czas (min)" value={day.time} onChange={e => updateField(i, 'time', e.target.value)} />
-              </div>
-              <div style={{ marginTop: '0.5rem' }}>
-                <textarea placeholder="Notatka" value={day.note} onChange={e => updateField(i, 'note', e.target.value)} rows={2} style={{ width: '100%' }} />
-              </div>
-            </div>
-          ))}
-        </div>
+    <div className="calendar-app">
+      <h1>Treningownik – Kalendarz</h1>
+      <p>Miesiąc: {today.format('MMMM YYYY')}</p>
+      <div className="summary">
+        <strong>Bieganie:</strong> {totals.runningDistance} km, {totals.runningTime} min, {totals.runningCalories} kcal |
+        <strong> Siłowe:</strong> {totals.strengthCalories} kcal
       </div>
-    </>
+      <div className="calendar-grid">
+        {['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd'].map(d => (
+          <div key={d} className="day-header">{d}</div>
+        ))}
+        {days.map((day, i) => (
+          <div key={i} className="calendar-cell">
+            {day ? (
+              <>
+                <div className="date">{dayjs(day.date).date()}</div>
+                <div className="activity">
+                  <strong>Bieganie</strong>
+                  <input placeholder="Dystans (km)" value={day.running.distance} onChange={e => updateField(i, 'running', 'distance', e.target.value)} />
+                  <input placeholder="Czas (min)" value={day.running.time} onChange={e => updateField(i, 'running', 'time', e.target.value)} />
+                  <input placeholder="Kalorie" value={day.running.calories} onChange={e => updateField(i, 'running', 'calories', e.target.value)} />
+                </div>
+                <div className="activity">
+                  <strong>Siłowe</strong>
+                  <input placeholder="Kalorie" value={day.strength.calories} onChange={e => updateField(i, 'strength', 'calories', e.target.value)} />
+                </div>
+              </>
+            ) : (
+              <div className="empty-cell" />
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
