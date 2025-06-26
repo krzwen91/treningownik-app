@@ -1,0 +1,16 @@
+body {
+  margin: 0;
+  font-family: sans-serif;
+  background: #f8f9fa;
+}
+.splash {
+  position: fixed;
+  inset: 0;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  z-index: 9999;
+  transition: opacity 1s ease;
+}

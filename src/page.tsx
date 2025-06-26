@@ -15,7 +15,8 @@ const generateDays = () => {
       completed: false,
       calories: '',
       distance: '',
-      time: ''
+      time: '',
+      note: ''
     })
   }
   return days
@@ -27,9 +28,16 @@ export default function App() {
     return saved ? JSON.parse(saved) : generateDays()
   })
 
+  const [showSplash, setShowSplash] = useState(true)
+
   useEffect(() => {
     localStorage.setItem('treningownik-days', JSON.stringify(days))
   }, [days])
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowSplash(false), 2000)
+    return () => clearTimeout(timer)
+  }, [])
 
   const toggleDay = (index: number) => {
     const copy = [...days]
@@ -41,6 +49,19 @@ export default function App() {
     const copy = [...days]
     copy[index][field] = value
     setDays(copy)
+  }
+
+  const exportToCSV = () => {
+    const header = 'Data,Trening,Zaliczony,Kalorie,Dystans (km),Czas (min),Notatka\n'
+    const rows = days.map(d => 
+      [d.date, d.completed ? '✅' : '', d.completed, d.calories, d.distance, d.time, d.note].join(',')
+    )
+    const csv = header + rows.join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = 'treningi.csv'
+    link.click()
   }
 
   const statsData = {
@@ -62,29 +83,36 @@ export default function App() {
   }
 
   return (
-    <div style={{ fontFamily: 'sans-serif', padding: '2rem', maxWidth: 900, margin: '0 auto' }}>
-      <h1>Treningownik</h1>
-      <p>PWA + wykresy. Kliknij dzień, uzupełnij dane.</p>
-      <div style={{ marginBottom: '3rem' }}>
-        <Line data={statsData} />
-      </div>
-      <div style={{ display: 'grid', gap: '1rem' }}>
-        {days.map((day, i) => (
-          <div key={day.date} style={{ padding: '1rem', border: '1px solid #ccc', borderRadius: 8 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <strong>{day.date}</strong>
-              <button onClick={() => toggleDay(i)}>
-                {day.completed ? '✅' : '⬜'}
-              </button>
+    <>
+      {showSplash && <div className="splash">🚀 Treningownik ładuje się...</div>}
+      <div style={{ padding: '2rem', maxWidth: 1000, margin: '0 auto' }}>
+        <h1>Treningownik</h1>
+        <p>Widok miesięczny, notatki, wykresy i eksport danych.</p>
+        <button onClick={exportToCSV}>📤 Eksportuj dane do CSV</button>
+        <div style={{ margin: '2rem 0' }}>
+          <Line data={statsData} />
+        </div>
+        <div style={{ display: 'grid', gap: '1rem' }}>
+          {days.map((day, i) => (
+            <div key={day.date} style={{ padding: '1rem', border: '1px solid #ccc', borderRadius: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <strong>{day.date}</strong>
+                <button onClick={() => toggleDay(i)}>
+                  {day.completed ? '✅' : '⬜'}
+                </button>
+              </div>
+              <div style={{ marginTop: '0.5rem' }}>
+                <input placeholder="Kalorie" value={day.calories} onChange={e => updateField(i, 'calories', e.target.value)} style={{ marginRight: 8 }} />
+                <input placeholder="Dystans (km)" value={day.distance} onChange={e => updateField(i, 'distance', e.target.value)} style={{ marginRight: 8 }} />
+                <input placeholder="Czas (min)" value={day.time} onChange={e => updateField(i, 'time', e.target.value)} />
+              </div>
+              <div style={{ marginTop: '0.5rem' }}>
+                <textarea placeholder="Notatka" value={day.note} onChange={e => updateField(i, 'note', e.target.value)} rows={2} style={{ width: '100%' }} />
+              </div>
             </div>
-            <div style={{ marginTop: '0.5rem' }}>
-              <input placeholder="Kalorie" value={day.calories} onChange={e => updateField(i, 'calories', e.target.value)} style={{ marginRight: 8 }} />
-              <input placeholder="Dystans (km)" value={day.distance} onChange={e => updateField(i, 'distance', e.target.value)} style={{ marginRight: 8 }} />
-              <input placeholder="Czas (min)" value={day.time} onChange={e => updateField(i, 'time', e.target.value)} />
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-    </div>
+    </>
   )
 }
