@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import dayjs from 'dayjs'
+import { Line } from 'react-chartjs-2'
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js'
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
 
 const today = dayjs()
-
 const generateDays = () => {
   const days = []
   for (let i = 0; i < 30; i++) {
@@ -40,10 +43,31 @@ export default function App() {
     setDays(copy)
   }
 
+  const statsData = {
+    labels: days.map(d => d.date),
+    datasets: [
+      {
+        label: 'Kalorie',
+        data: days.map(d => Number(d.calories || 0)),
+        borderColor: 'blue',
+        backgroundColor: 'rgba(0,0,255,0.2)'
+      },
+      {
+        label: 'Dystans (km)',
+        data: days.map(d => Number(d.distance || 0)),
+        borderColor: 'green',
+        backgroundColor: 'rgba(0,255,0,0.2)'
+      }
+    ]
+  }
+
   return (
-    <div style={{ fontFamily: 'sans-serif', padding: '2rem', maxWidth: 800, margin: '0 auto' }}>
+    <div style={{ fontFamily: 'sans-serif', padding: '2rem', maxWidth: 900, margin: '0 auto' }}>
       <h1>Treningownik</h1>
-      <p>Kliknij dzień, by oznaczyć trening. Uzupełnij dane.</p>
+      <p>PWA + wykresy. Kliknij dzień, uzupełnij dane.</p>
+      <div style={{ marginBottom: '3rem' }}>
+        <Line data={statsData} />
+      </div>
       <div style={{ display: 'grid', gap: '1rem' }}>
         {days.map((day, i) => (
           <div key={day.date} style={{ padding: '1rem', border: '1px solid #ccc', borderRadius: 8 }}>
@@ -54,23 +78,9 @@ export default function App() {
               </button>
             </div>
             <div style={{ marginTop: '0.5rem' }}>
-              <input
-                placeholder="Kalorie"
-                value={day.calories}
-                onChange={e => updateField(i, 'calories', e.target.value)}
-                style={{ marginRight: 8 }}
-              />
-              <input
-                placeholder="Dystans (km)"
-                value={day.distance}
-                onChange={e => updateField(i, 'distance', e.target.value)}
-                style={{ marginRight: 8 }}
-              />
-              <input
-                placeholder="Czas (min)"
-                value={day.time}
-                onChange={e => updateField(i, 'time', e.target.value)}
-              />
+              <input placeholder="Kalorie" value={day.calories} onChange={e => updateField(i, 'calories', e.target.value)} style={{ marginRight: 8 }} />
+              <input placeholder="Dystans (km)" value={day.distance} onChange={e => updateField(i, 'distance', e.target.value)} style={{ marginRight: 8 }} />
+              <input placeholder="Czas (min)" value={day.time} onChange={e => updateField(i, 'time', e.target.value)} />
             </div>
           </div>
         ))}
