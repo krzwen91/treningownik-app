@@ -1,21 +1,20 @@
+
 {
-  "name": "treningownik-app",
+  "name": "treningownik",
   "version": "1.0.0",
+  "description": "Aplikacja do monitorowania biegania i treningów siłowych",
+  "main": "index.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "dayjs": "^1.11.9",
-    "chart.js": "^4.4.1",
-    "react-chartjs-2": "^5.2.0"
+    "@supabase/supabase-js": "^2.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.0.0",
-    "vite": "^4.3.0",
-    "typescript": "^5.0.0"
+    "vite": "^4.0.0"
   }
 }
